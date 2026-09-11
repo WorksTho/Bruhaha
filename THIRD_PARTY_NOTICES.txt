@@ -1,0 +1,25 @@
+THIRD-PARTY SOFTWARE NOTICES
+
+This project adapts card-game domain patterns from:
+
+1) jCards (https://github.com/lyudaio/jcards) — MIT License
+   Copyright (c) 2023 lyudaio
+   Adapted concepts: Deck, Hand, Player (shuffle/deal/hand management).
+
+2) Makao (https://github.com/WilinskiW/Makao) — see upstream LICENSE
+   Adapted architecture: Game + Screen MVC, DeckManager/Stack-style piles,
+   gameplay controllers separated from rendering.
+
+3) VisUI (https://github.com/kotcrab/vis-ui) — Apache License 2.0
+   Modern Scene2D UI skin and widgets.
+
+4) gdx-ai (https://github.com/libgdx/gdx-ai) — Apache License 2.0
+   Finite-state machine for the bot opponent.
+
+5) P2Poker CardActor pattern (https://github.com/GreedMitya/P2Poker)
+   Scene2D card actor drawing / transform approach.
+
+6) ArcToAction curved move pattern (StackOverflow / community LibGDX Actions)
+   Used for deal and throw arcs.
+
+7) libGDX — Apache License 2.0
