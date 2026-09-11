@@ -11,9 +11,7 @@ import dev.workstho.bruhaha.model.Card;
 import dev.workstho.bruhaha.model.Hand;
 
 /**
- * Overlapping fan hand layout with animated rearrange.
- * Inspired by community Scene2D hand patterns (negative overlap + rotation fan)
- * and P2Poker {@code CardActor} draw/transform style.
+ * Overlapping fan hand with deal-from-deck and rearrange animations.
  */
 public class HandGroup extends Group {
     public interface CardClickListener {
@@ -28,6 +26,7 @@ public class HandGroup extends Group {
     private float layoutY;
     private float centerX;
     private int hoverIndex = -1;
+    private boolean dealing;
 
     public HandGroup(GameAssets assets, boolean faceDown, boolean fan) {
         this.assets = assets;
@@ -49,11 +48,16 @@ public class HandGroup extends Group {
         return cards;
     }
 
+    public boolean isDealing() {
+        return dealing;
+    }
+
     public int getHoverIndex() {
         return hoverIndex;
     }
 
     public void setHoverIndex(int index) {
+        if (dealing) return;
         if (hoverIndex == index) return;
         int prev = hoverIndex;
         hoverIndex = index;
@@ -62,25 +66,33 @@ public class HandGroup extends Group {
         animateFan(0.18f, false);
     }
 
-    /** Rebuild actors from model hand; optionally deal-animate from a deck point. */
-    public void syncFromHand(Hand hand, float deckX, float deckY, boolean dealAnimate) {
+    /**
+     * Rebuild from model hand. When {@code dealAnimate}, each card flies from the deck
+     * into the rack (face-down for bot; flip to face for player).
+     */
+    public void syncFromHand(Hand hand, float deckX, float deckY, float deckW, float deckH, boolean dealAnimate) {
         clearChildren();
         cards.clear();
         hoverIndex = -1;
-        for (int i = 0; i < hand.size(); i++) {
+        dealing = dealAnimate;
+
+        int n = hand.size();
+        for (int i = 0; i < n; i++) {
             Card card = hand.get(i);
-            CardActor actor = new CardActor(card, assets.face(card.getType()), assets.back(), faceDown);
+            // Deal starts face-down from the deck, then player cards flip
+            CardActor actor = new CardActor(card, assets.face(card.getType()), assets.back(), true);
             actor.setHandIndex(i);
             actor.addListener(new com.badlogic.gdx.scenes.scene2d.InputListener() {
                 @Override
                 public boolean touchDown(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, int button) {
+                    if (dealing) return false;
                     if (clickListener != null) clickListener.onCardClicked(actor, actor.getHandIndex());
                     return true;
                 }
 
                 @Override
                 public void enter(com.badlogic.gdx.scenes.scene2d.InputEvent event, float x, float y, int pointer, com.badlogic.gdx.scenes.scene2d.Actor fromActor) {
-                    if (!faceDown) setHoverIndex(actor.getHandIndex());
+                    if (!faceDown && !dealing) setHoverIndex(actor.getHandIndex());
                 }
 
                 @Override
@@ -93,33 +105,58 @@ public class HandGroup extends Group {
             addActor(actor);
             cards.add(actor);
 
-            FanSlot slot = slotFor(i, hand.size());
+            FanSlot slot = slotFor(i, n);
             if (dealAnimate) {
+                actor.setFaceDown(true);
+                actor.setSize(CardActor.BASE_W, CardActor.BASE_H);
+                actor.setOrigin(CardActor.BASE_W / 2f, CardActor.BASE_H / 2f);
                 actor.setPosition(deckX, deckY);
-                actor.setRotation(MathUtils.random(-12f, 12f));
-                actor.setScale(0.55f);
-                actor.getColor().a = 0f;
+                actor.setScale(deckW / CardActor.BASE_W);
+                actor.setRotation(-4f);
+                actor.setTouchable(Touchable.disabled);
+
+                float delay = i * 0.12f;
+                final int index = i;
+                final boolean flipToFace = !faceDown;
                 actor.addAction(Actions.sequence(
-                    Actions.delay(i * 0.07f),
+                    Actions.delay(delay),
                     Actions.parallel(
-                        Actions.fadeIn(0.15f),
-                        Actions.scaleTo(1f, 1f, 0.32f, Interpolation.swingOut),
-                        ArcToAction.arcTo(slot.x, slot.y, 0.42f, Interpolation.swingOut, slot.rotation)
-                    )
+                        ArcToAction.arcTo(slot.x, slot.y, 0.45f, Interpolation.sineOut, slot.rotation),
+                        Actions.scaleTo(1f, 1f, 0.45f, Interpolation.smooth)
+                    ),
+                    Actions.run(() -> {
+                        actor.setPosition(slot.x, slot.y);
+                        actor.setRotation(slot.rotation);
+                        actor.setScale(1f);
+                    }),
+                    flipToFace
+                        ? Actions.sequence(
+                            Actions.scaleTo(0.02f, 1f, 0.09f, Interpolation.smooth),
+                            Actions.run(() -> actor.setFaceDown(false)),
+                            Actions.scaleTo(1f, 1f, 0.1f, Interpolation.smooth)
+                        )
+                        : Actions.delay(0.01f),
+                    Actions.run(() -> {
+                        actor.setTouchable(Touchable.enabled);
+                        if (index == n - 1) dealing = false;
+                    })
                 ));
             } else {
+                actor.setFaceDown(faceDown);
                 actor.setPosition(slot.x, slot.y);
                 actor.setRotation(slot.rotation);
             }
         }
+        if (!dealAnimate || n == 0) dealing = false;
     }
 
     public void animateFan(float duration, boolean staggered) {
+        if (dealing) return;
         int n = cards.size;
         for (int i = 0; i < n; i++) {
             CardActor actor = cards.get(i);
             FanSlot slot = slotFor(i, n);
-            float lift = (!faceDown && i == hoverIndex) ? 34f : 0f;
+            float lift = (!faceDown && i == hoverIndex) ? 28f : 0f;
             actor.clearActions();
             float delay = staggered ? i * 0.03f : 0f;
             actor.addAction(Actions.sequence(
@@ -127,7 +164,7 @@ public class HandGroup extends Group {
                 Actions.parallel(
                     Actions.moveTo(slot.x, slot.y + lift, duration, Interpolation.smooth),
                     Actions.rotateTo(slot.rotation, duration, Interpolation.smooth),
-                    Actions.scaleTo(i == hoverIndex ? 1.08f : 1f, i == hoverIndex ? 1.08f : 1f, duration, Interpolation.smooth)
+                    Actions.scaleTo(i == hoverIndex ? 1.06f : 1f, i == hoverIndex ? 1.06f : 1f, duration, Interpolation.smooth)
                 )
             ));
             actor.setZIndex(i == hoverIndex ? n + 5 : i);
@@ -149,7 +186,6 @@ public class HandGroup extends Group {
             slot.y = layoutY;
             return slot;
         }
-        // Overlap spacing shrinks as hand grows (community hand-arrangement pattern).
         float maxSpan = Math.min(980f, getStage() != null ? getStage().getWidth() - 160f : 980f);
         float idealStep = CardActor.BASE_W * 0.62f;
         float step = count <= 1 ? 0f : Math.min(idealStep, maxSpan / (count - 1f));
@@ -157,11 +193,11 @@ public class HandGroup extends Group {
         float startX = centerX - total / 2f - CardActor.BASE_W / 2f;
 
         float mid = (count - 1) * 0.5f;
-        float fanAngle = fan ? MathUtils.clamp(count * 2.2f, 0f, 18f) : 0f;
+        float fanAngle = fan ? MathUtils.clamp(count * 2.2f, 0f, 16f) : 0f;
         float t = count == 1 ? 0f : (index - mid) / mid;
         slot.rotation = fan ? -t * fanAngle : 0f;
         slot.x = startX + index * step;
-        slot.y = layoutY - (fan ? Math.abs(t) * 10f : 0f);
+        slot.y = layoutY - (fan ? Math.abs(t) * 8f : 0f);
         return slot;
     }
 

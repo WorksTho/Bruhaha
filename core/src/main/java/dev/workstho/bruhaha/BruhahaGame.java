@@ -4,22 +4,20 @@ import com.badlogic.gdx.Game;
 import com.badlogic.gdx.graphics.g2d.SpriteBatch;
 import com.kotcrab.vis.ui.VisUI;
 import dev.workstho.bruhaha.assets.GameAssets;
-import dev.workstho.bruhaha.screens.LoadingScreen;
+import dev.workstho.bruhaha.screens.SplashScreen;
 
-/**
- * Application entry (Makao-style {@code Game} + screens).
- */
+/** Application entry — Rockstar-style splash, then straight into gameplay. */
 public class BruhahaGame extends Game {
     private SpriteBatch batch;
     private GameAssets assets;
 
     @Override
     public void create() {
-        VisUI.load(VisUI.SkinScale.X1);
+        VisUI.load(VisUI.SkinScale.X2);
         batch = new SpriteBatch();
         assets = new GameAssets();
         assets.queue();
-        setScreen(new LoadingScreen(this));
+        setScreen(new SplashScreen(this));
     }
 
     public SpriteBatch getBatch() {
