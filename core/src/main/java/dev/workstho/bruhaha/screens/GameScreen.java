@@ -41,7 +41,7 @@ public class GameScreen extends ScreenAdapter implements GameSession.Listener, G
         bot = new BotBrain(session);
         world = new TableWorld(game.getAssets());
         cards = new CardPlayLayer(game.getAssets(), this);
-        hud = new GameHud(this);
+        hud = new GameHud(game.getAssets(), this);
 
         InputMultiplexer mux = new InputMultiplexer();
         mux.addProcessor(hud.getStage());

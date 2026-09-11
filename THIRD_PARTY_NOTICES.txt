@@ -23,3 +23,8 @@ This project adapts card-game domain patterns from:
    Used for deal and throw arcs.
 
 7) libGDX — Apache License 2.0
+
+Fonts (SIL Open Font License):
+- Luckiest Guy (Google Fonts / fontsource)
+- Bangers (The Bangers Project Authors)
+- Boogaloo (John Vargas Beltran)
