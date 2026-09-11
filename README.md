@@ -1,5 +1,7 @@
 # Bruhaha
 
+Bruhaha is a fast-paced, competitive party card game published by the Indian indie game studio WorksTho.  Designed as a quick, aggressive alternative to classic party games like UNO, the goal is to eliminate rivals, survive incoming attacks, and be the last player or team standing
+
 A [libGDX](https://libgdx.com/) project generated with [gdx-liftoff](https://github.com/libgdx/gdx-liftoff).
 
 This project was generated with a template including simple application launchers and an empty `ApplicationListener` implementation.
